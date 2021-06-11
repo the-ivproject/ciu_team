@@ -11,9 +11,9 @@ mapboxgl.accessToken = mapbox_token
 
 var map = new mapboxgl.Map({
     container: 'map', // container id
-    style: 'mapbox://styles/mapbox/streets-v11', // YOUR TURN: choose a style: https://docs.mapbox.com/api/maps/#styles
-    center: [31.799643705686073, -39.700238700624276], // starting position [lng, lat]
-    zoom: 3, // starting zoom
+    style: 'mapbox://styles/mapbox/light-v10', // YOUR TURN: choose a style: https://docs.mapbox.com/api/maps/#styles
+    // center: [19.50, -36.10], // starting position [lng, lat]
+    zoom: 1, // starting zoom
 });
 
 map.addControl(new mapboxgl.NavigationControl(), 'top-left');
@@ -36,28 +36,38 @@ $(document).ready(() => {
             delimiter: ','
         }, (err, data) => {
             let addDataLayer = () => {
-                var geo = {
-                    'id': 'csvData',
-                    'type': 'circle',
-                    'source': {
-                        'type': 'geojson',
-                        'data': data
-                    },
-                }
-                geo.source.data.features.forEach(marker => {
-                    var el = document.createElement('img');
-                    el.className = 'icon-image';
-                    el.src = marker.properties.image_path
-
-                    // make a marker for each feature and add it to the map
-                    new mapboxgl.Marker(el)
-                        .setLngLat(marker.geometry.coordinates)
-                        .setPopup(new mapboxgl.Popup({ offset: 25 }) // add popups
-                        .setHTML('<h3>' + marker.properties.name + '</h3><p>' + marker.properties.description + '</p>'))
-                        .addTo(map);
-                })
+            let source = {
+                type: 'geojson',
+                // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
+                // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
+                data: data,
+                cluster: true,
+                clusterMaxZoom: 14, // Max zoom to cluster points on
+                clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
             }
 
+            // Add a new source from our GeoJSON data and
+            // set the 'cluster' option to true. GL-JS will
+            // add the point_count property to your source data.
+            map.addSource('geo', source);
+
+            source.data.features.forEach((marker, i) => {
+                var el = document.createElement('img');
+                el.className = 'icon-image';
+                el.src = marker.properties.image_path
+
+                // make a marker for each feature and add it to the map
+                new mapboxgl.Marker(el)
+                    .setLngLat(marker.geometry.coordinates)
+                    .setPopup(new mapboxgl.Popup({
+                            offset: 25
+                        }) // add popups
+                        .setHTML(`<img class="img_staff" src="${marker.properties.image_path}"><h4>${marker.properties.name}</h4><p>${marker.properties.description}</p>`))
+                    .addTo(map).on('mouseenter',() => {
+                        map.getCanvas().style.cursor = 'pointer';
+                    });
+            })
+        }
             map.on('style.load', () => {
                 // Triggered when `setStyle` is called.
                 if (data) addDataLayer();
@@ -65,8 +75,13 @@ $(document).ready(() => {
 
             map.on('load', () => {
 
-                addDataLayer()
- 
+                addDataLayer()         
+
+                // Change it back to a pointer when it leaves.
+                map.on('mouseleave', 'geo', () => {
+                    map.getCanvas().style.cursor = '';
+                });
+
                 map.on('data', e => {
                     if (e.dataType === 'source' && e.sourceId === 'composite') {
                         document.getElementById("loader").style.visibility = "hidden";
@@ -83,16 +98,8 @@ $(document).ready(() => {
 
                 UseBbox()
 
-                // Change the cursor to a pointer when the mouse is over the places layer.
-                map.on('mouseenter', 'csvData', () => {
-                    map.getCanvas().style.cursor = 'pointer';
-                });
-
-                // Change it back to a pointer when it leaves.
-                map.on('mouseleave', 'places', () => {
-                    map.getCanvas().style.cursor = '';
-                });
             });
+     
         });
     };
 });
