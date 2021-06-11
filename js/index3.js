@@ -41,23 +41,30 @@ $(document).ready(() => {
                     'type': 'circle',
                     'source': {
                         'type': 'geojson',
-                        'data': data
-                    },
+                        'data': data,
+                        'cluster': true,
+                        'clusterMaxZoom': 14, // Max zoom to cluster points on
+                        'clusterRadius': 40, // Radius of each cluster when clustering points (defaults to 50)
+                    }
                 }
+
                 geo.source.data.features.forEach(marker => {
+                    // console.log(marker)
+                    // create a HTML element for each feature
                     var el = document.createElement('img');
                     el.className = 'icon-image';
-                    el.src = marker.properties.image_path
+                    el.src = marker.properties.image_link
 
                     // make a marker for each feature and add it to the map
                     new mapboxgl.Marker(el)
                         .setLngLat(marker.geometry.coordinates)
                         .setPopup(new mapboxgl.Popup({ offset: 25 }) // add popups
-                        .setHTML('<h3>' + marker.properties.name + '</h3><p>' + marker.properties.description + '</p>'))
+                            .setHTML('<h3>' + marker.properties.name + '</h3><p>' + marker.properties.description + '</p>'))
                         .addTo(map);
+                        console.log(marker)
                 })
-            }
 
+            }
             map.on('style.load', () => {
                 // Triggered when `setStyle` is called.
                 if (data) addDataLayer();
@@ -66,8 +73,31 @@ $(document).ready(() => {
             map.on('load', () => {
 
                 addDataLayer()
- 
+
+                var layers = [
+                    [20, '#f28cb1'],
+                    [10, '#f1f075'],
+                    [0, '#51bbd6']
+                ];
+
+                layers.forEach(function (layer, i) {
+                    map.addLayer({
+                        "id": "cluster-" + i,
+                        "type": "circle",
+                        "source": "csvData",
+                        "paint": {
+                            "circle-color": layer[1],
+                            "circle-radius": 18
+                        },
+                        "filter": i === 0 ?
+                            [">=", "point_count", layer[0]] :
+                            ["all",
+                                [">=", "point_count", layer[0]],
+                                ["<", "point_count", layers[i - 1][0]]]
+                    });
+                });
                 map.on('data', e => {
+                    
                     if (e.dataType === 'source' && e.sourceId === 'composite') {
                         document.getElementById("loader").style.visibility = "hidden";
                         document.getElementById("overlay").style.visibility = "hidden";
@@ -93,6 +123,16 @@ $(document).ready(() => {
                     map.getCanvas().style.cursor = '';
                 });
             });
+
+            let UseBbox = () => {
+                let bbox = turf.bbox(data);
+                map.fitBounds(bbox, {
+                    padding: 50
+                })
+            }
+
+            UseBbox()
+
         });
     };
 });
