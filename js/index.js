@@ -1,105 +1,112 @@
-// Google sheet name
-const google_sheet_name = 'https://docs.google.com/spreadsheets/d/1tInlofdk4d0To94XA21n2cUPfuXbbe1Z'
-// Sheet name
-const sheet_name = 'team'
+const SPREADSHEET_ID = '1DUIDUSJKOZZxLKwzALQ4z-_Qgpo9ZWYjt_hUKgK17q4'
+const SPREADSHEET_KEY = 'AIzaSyBxy4juu30u8ac7Cd5bsx2dhQeapOVs_i4'
 
-// Mapbox token
-const mapbox_token = 'pk.eyJ1IjoiaXZwcm9qZWN0IiwiYSI6ImNrcDZuOWltYzJyeGMycW1jNDVlbDQwejQifQ.97Y2eucdbVp1F2Ow8EHgBQ'
+const DATA = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?dateTimeRenderOption=FORMATTED_STRING&majorDimension=ROWS&ranges=A1%3AZ1000&valueRenderOption=FORMATTED_VALUE&key=${SPREADSHEET_KEY}`
 
-//YOUR TURN: add your Mapbox token
-mapboxgl.accessToken = mapbox_token
+let a = $.ajax({
+    type: "GET",
+    url: DATA,
+    dataType: "json",
+    success: function (csvData) {
+        console.log('ok')
+    }
+}).done(json => {
 
-var map = new mapboxgl.Map({
-    container: 'map', // container id
-    style: 'mapbox://styles/mapbox/light-v10', // YOUR TURN: choose a style: https://docs.mapbox.com/api/maps/#styles
-    // center: [19.50, -36.10], // starting position [lng, lat]
-    zoom: 1, // starting zoom
-});
+    let res = json.valueRanges[0].values
 
-map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+    let data = []
 
-$(document).ready(() => {
-    $.ajax({
-        type: "GET",
-        //YOUR TURN: Replace with csv export link
-        url: `${google_sheet_name}/gviz/tq?tqx=out:csv&sheet=${sheet_name}`,
-        dataType: "text",
-        success: function (csvData) {
-            makeGeoJSON(csvData);
+    for (let i = 1; i < res.length; i++) {
+        let object = {}
+        for (let j = 0; j < res[i].length; j++) {
+            let a = res[0][j]
+            object[a] = res[i][j]
+
         }
+        data.push(object)
+    }
+
+    let map = L.map('map').setView([19.50, -36.10], 3);
+
+    L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+        maxZoom: 18,
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+            'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1
+    }).addTo(map);
+
+    var jsonFeatures = [];
+
+    data.forEach(function (point) {
+        var lat = parseFloat(point.latitude);
+        var lon = parseFloat(point.longitude);
+
+        var feature = {
+            type: 'Feature',
+            properties: point,
+            geometry: {
+                type: 'Point',
+                coordinates: [lon, lat]
+            }
+        };
+
+        jsonFeatures.push(feature);
     });
 
-    let makeGeoJSON = csvData => {
-        csv2geojson.csv2geojson(csvData, {
-            latfield: 'latitude',
-            lonfield: 'longitude',
-            delimiter: ','
-        }, (err, data) => {
-            let addDataLayer = () => {
-            let source = {
-                type: 'geojson',
-                // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
-                // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
-                data: data,
-                cluster: true,
-                clusterMaxZoom: 14, // Max zoom to cluster points on
-                clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
-            }
+    function PoIstile(feature, latlng) {
+        var fontanaIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style='background-color:#c30b82;' class='marker-pin'></div><img src="${feature.properties.image_path}" style="width:50px">`,
+            iconSize: [30, 42],
+            iconAnchor: [25, 30]
+        });
 
-            // Add a new source from our GeoJSON data and
-            // set the 'cluster' option to true. GL-JS will
-            // add the point_count property to your source data.
-            map.addSource('geo', source);
-
-            source.data.features.forEach((marker, i) => {
-                var el = document.createElement('img');
-                el.className = 'icon-image';
-                el.src = marker.properties.image_path
-
-                // make a marker for each feature and add it to the map
-                new mapboxgl.Marker(el)
-                    .setLngLat(marker.geometry.coordinates)
-                    .setPopup(new mapboxgl.Popup({
-                            offset: 25
-                        }) // add popups
-                        .setHTML(`<img class="img_staff" src="${marker.properties.image_path}"><h4>${marker.properties.name}</h4><p>${marker.properties.description}</p>`))
-                    .addTo(map).on('mouseenter',() => {
-                        map.getCanvas().style.cursor = 'pointer';
-                    });
-            })
-        }
-            map.on('style.load', () => {
-                // Triggered when `setStyle` is called.
-                if (data) addDataLayer();
-            });
-
-            map.on('load', () => {
-
-                addDataLayer()         
-
-                // Change it back to a pointer when it leaves.
-                map.on('mouseleave', 'geo', () => {
-                    map.getCanvas().style.cursor = '';
-                });
-
-                map.on('data', e => {
-                    if (e.dataType === 'source' && e.sourceId === 'composite') {
-                        document.getElementById("loader").style.visibility = "hidden";
-                        document.getElementById("overlay").style.visibility = "hidden";
-                    }
-                })
-
-                let UseBbox = () => {
-                    let bbox = turf.bbox(data);
-                    map.fitBounds(bbox, {
-                        padding: 50
-                    })
-                }
-
-                UseBbox()
-
-            });
-     
+        return L.marker(latlng, {
+            icon: fontanaIcon
         });
     };
-});
+
+    let geoFile = {
+        type: 'FeatureCollection',
+        features: jsonFeatures
+    };
+
+    var markers = L.markerClusterGroup({
+        spiderfyOnMaxZoom: false,
+        removeOutsideVisibleBounds: false,
+        disableClusteringAtZoom: 8,
+        showCoverageOnHover: false,
+        maxClusterRadius: 50,
+        animateAddingMarkers: true,
+        iconCreateFunction: cluster => {
+            let markers = cluster.getAllChildMarkers();
+            let first = markers[0].feature.properties.image_path
+            var html = `<img class="first-icon-cluster" src="${first}"></img><div class="circle">${markers.length}</div>`;
+            return L.divIcon({
+                html: html,
+                className: 'mycluster',
+                iconSize: L.point(32, 32)
+            });
+        },
+    });
+
+    let popupShow = (feature, layer) => {
+        layer.bindPopup(`<img class="img-popup" src="${feature.properties.image_path}"></img><h3>${feature.properties.name}</h3><p>${feature.properties.description}</p>`);
+    }
+
+    let geojson = L.geoJson(geoFile, {
+        pointToLayer: PoIstile,
+        onEachFeature:popupShow
+    })
+
+    markers.addLayer(geojson);
+
+    map.addLayer(markers);
+    map.fitBounds(markers.getBounds());
+    markers.on('click', a => {
+        let prop = a.layer.feature.properties
+        console.log(prop)
+    });
+})

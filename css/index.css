@@ -1,0 +1,48 @@
+* {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    /* z-index: 999; */
+    position: absolute;
+}
+.first-icon-cluster {
+    width: 50px;
+    position: absolute;
+    z-index: -888;
+    bottom:12px;
+    right: 10px;
+}
+
+.circle {
+    width: 32px;
+    height: 32px;
+    line-height: 18px;
+    text-align: center;
+    background-color: #e63946;
+    color: white;
+    font-family: 'Roboto';
+    font-weight: bold;
+    font-size: 10px;
+    width: 20px;
+    height: 18px;
+    border-radius: 10px;
+    box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;;
+}
+
+.img-popup {
+    float: left;
+    width: 50px;
+    margin-right: 10px;
+}
+p {
+    margin: 0 !important;
+}
+
+.leaflet-popup-content {
+    margin: auto;
+    padding:10px;
+}
