@@ -58,7 +58,7 @@ let a = $.ajax({
     function PoIstile(feature, latlng) {
         var fontanaIcon = L.divIcon({
             className: 'custom-div-icon',
-            html: `<div style='background-color:#c30b82;' class='marker-pin'></div><img src="${feature.properties.image_path}" style="width:50px">`,
+            html: `<div style='background-color:#c30b82;' class='marker-pin'></div><a target="_blank" href="${feature.properties.image_path}"><img src="${feature.properties.image_path}" style="width:50px"></a>`,
             iconSize: [30, 42],
             iconAnchor: [25, 30]
         });
