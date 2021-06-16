@@ -26,24 +26,25 @@ let a = $.ajax({
         data.push(object)
     }
 
-    let map = L.map('map').setView([19.50, -36.10], 3);
+    let mbAttr = 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+        'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>'
+    let mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
 
-    L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
-        maxZoom: 18,
-        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-            'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-        id: 'mapbox/streets-v11',
-        tileSize: 512,
-        zoomOffset: -1
-    }).addTo(map);
+    let grayscale = L.tileLayer(mbUrl, { id: 'mapbox/light-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr })
 
-    var jsonFeatures = [];
+    let map = L.map('map', {
+        center: [39.73, -104.99],
+        zoom: 10,
+        layers: [grayscale]
+    });
+
+    let jsonFeatures = [];
 
     data.forEach(function (point) {
-        var lat = parseFloat(point.latitude);
-        var lon = parseFloat(point.longitude);
+        let lat = parseFloat(point.latitude);
+        let lon = parseFloat(point.longitude);
 
-        var feature = {
+        let feature = {
             type: 'Feature',
             properties: point,
             geometry: {
@@ -56,7 +57,7 @@ let a = $.ajax({
     });
 
     function PoIstile(feature, latlng) {
-        var fontanaIcon = L.divIcon({
+        let fontanaIcon = L.divIcon({
             className: 'custom-div-icon',
             html: `<div style='background-color:#c30b82;' class='marker-pin'></div><a class="thumb" target="_blank" href="${feature.properties.image_path}" style="width:50px"><img src="${feature.properties.image_path}" alt="photo" style="width:50px"></a>`,
             iconSize: [30, 42],
@@ -73,7 +74,7 @@ let a = $.ajax({
         features: jsonFeatures
     };
 
-    var markers = L.markerClusterGroup({
+    let markers = L.markerClusterGroup({
         spiderfyOnMaxZoom: false,
         removeOutsideVisibleBounds: false,
         disableClusteringAtZoom: 8,
@@ -83,7 +84,7 @@ let a = $.ajax({
         iconCreateFunction: cluster => {
             let markers = cluster.getAllChildMarkers();
             let first = markers[0].feature.properties.image_path
-            var html = `<img class="first-icon-cluster" src="${first}"></img><div class="circle">${markers.length}</div>`;
+            let html = `<img class="first-icon-cluster" src="${first}"></img><div class="circle">${markers.length}</div>`;
             return L.divIcon({
                 html: html,
                 className: 'mycluster',
@@ -98,7 +99,7 @@ let a = $.ajax({
 
     let geojson = L.geoJson(geoFile, {
         pointToLayer: PoIstile,
-        onEachFeature:popupShow
+        onEachFeature: popupShow
     })
 
     markers.addLayer(geojson);
