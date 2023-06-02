@@ -25,7 +25,7 @@ let a = $.ajax({
         }
         data.push(object)
     }
-    const map = L.map('map').setView([51.5, -0.09], 13);
+    const map = L.map('map')
 
 	L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
